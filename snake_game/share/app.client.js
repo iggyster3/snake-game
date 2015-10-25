@@ -1,0 +1,1 @@
+game.onUpdate = function (delta) {       var now = performance.now();
