@@ -4,11 +4,14 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var io = require('socket.io')();
+var gameEvents = require('./share/events.js');
+var game = require('./server/app.js');
 
 var routes = require('./routes/index');
-var users = require('./routes/users');
 
 var app = express();
+app.io = io;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -23,7 +26,6 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/users', users);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -56,5 +58,41 @@ app.use(function(err, req, res, next) {
     });
 });
 
+io.on('connection', function(socket){
+//    console.log('new client');
+
+    socket.on(gameEvents.server_newRoom, function(data){
+        console.log('Message in: ', gameEvents.server_newRoom, data);
+        var roomId = game.newRoom(data.maxWidth, data.maxHeight);
+        game.joinRoom(roomId, this, data.id, data.x, data.y, data.color);
+    });
+
+    socket.on(gameEvents.server_joinRoom, function(data){
+        console.log('Message in: ', gameEvents.server_joinRoom, data);
+        game.joinRoom(data.roomId, this, data.playerId, data.playerX, data.playerY, data.playerColor);
+    });
+
+    socket.on(gameEvents.server_listRooms, function(){
+//        console.log('Message in: ', gameEvents.server_listRooms);
+        var rooms = game.listRooms();
+        socket.emit(gameEvents.client_roomsList, rooms);
+    });
+
+    socket.on(gameEvents.server_startRoom, function(data){
+//        console.log('Message in: ', gameEvents.server_startRoom, data);
+        game.startRoom(data.roomId);
+    });
+
+    socket.on(gameEvents.server_spawnFruit, function(data){
+//        console.log('Message in: ', gameEvents.server_spawnFruit, data);
+        var pos = game.spawnFruit(data.roomId, data.maxWidth, data.maxHeight);
+        socket.emit(gameEvents.client_newFruit, pos);
+    });
+
+    socket.on(gameEvents.server_setPlayerKey, function(data){
+//        console.log('Message in: ', gameEvents.server_setPlayerKey, data);
+        game.setPlayerKey(data.roomId, data.playerId, data.keyCode);
+    })
+});
 
 module.exports = app;
