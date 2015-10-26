@@ -1,12 +1,12 @@
-var tick = function () {
-    var ticks = 0;
+var tick = function (delay) {
+    var _delay = delay;
     var timer;
 
     if (typeof requestAnimationFrame === 'undefined') {
         timer = function (cb) {
-            setTimeout(function () {
-                cb(++ticks);
-            }, 0);
+            setImmediate(function () {
+                cb(_delay);
+            }, _delay);
         }
     } else {
         timer = window.requestAnimationFrame;
@@ -17,4 +17,4 @@ var tick = function () {
     }
 };
 
-module.exports = tick();
+module.exports = tick;
